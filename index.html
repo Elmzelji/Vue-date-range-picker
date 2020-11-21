@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Date Range Picker</title>
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+</head>
+<body>
+<section id="app" class="w-1/2 mx-auto">
+    <button @click="pickDate" class="border border-gray-500 p-4 w-full focus:outline-none"></button>
+    <div v-show="dateRangeModel" class="py-4 shadow-lg rounded-md">
+        <!-- Months -->
+        <div class="flex items-center justify-center">
+            <button @click="previousMonth" class="focus:outline-none p-5">
+                <svg class="fill-current text-blue-500 w-1.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 512"><path d="M192 127.338v257.324c0 17.818-21.543 26.741-34.142 14.142L29.196 270.142c-7.81-7.81-7.81-20.474 0-28.284l128.662-128.662c12.599-12.6 34.142-3.676 34.142 14.142z"/></svg>
+            </button>
+            <span class="text-center mx-4 text-blue-900 w-full">{{ SelectedMonthAndYear }}</span>
+            <button @click="nexMonth" class="focus:outline-none p-5">
+                <svg class="fill-current text-blue-500 w-1.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 512"><path d="M0 384.662V127.338c0-17.818 21.543-26.741 34.142-14.142l128.662 128.662c7.81 7.81 7.81 20.474 0 28.284L34.142 398.804C21.543 411.404 0 402.48 0 384.662z"/></svg>
+            </button>
+        </div>
+
+        <table class="table-auto w-full mt-1.5">
+            <thead>
+                <tr>
+                    <th class="text-gray-400 text-xs">MON</th>
+                    <th class="text-gray-400 text-xs">TUE</th>
+                    <th class="text-gray-400 text-xs">WED</th>
+                    <th class="text-gray-400 text-xs">THU</th>
+                    <th class="text-gray-400 text-xs">FRI</th>
+                    <th class="text-gray-400 text-xs">SAT</th>
+                    <th class="text-gray-400 text-xs">SUN</th>
+                </tr>
+            </thead>
+            <tbody id="calendar-body">
+            </tbody>
+          </table>
+
+    </div>
+</section>
+<script>
+var rangePicker = new Vue({
+    el:'#app',
+    data: {
+        today : new Date(),
+        months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+        SelectedMonthAndYear: "",
+        selectYear : "",
+        selectMonth : "",
+        startDate: "",
+        endDate:"",
+        dateRangeModel: false,
+    },
+    methods: {
+        pickDate: function() {
+            this.dateRangeModel = !this.dateRangeModel;
+            currentMonth = this.today.getMonth();
+            currentYear = this.today.getFullYear();
+            this.startDate = this.today.toLocaleDateString();
+            if(this.dateRangeModel)
+                this.showCalendar(currentMonth, currentYear);
+        },
+        selectDate: function(elm) {
+            if(this.startDate && this.endDate)
+            {
+                this.startDate = "";
+                this.endDate="";
+            }
+            if(!this.startDate) {
+                var elems = document.querySelectorAll(".date-element");
+                [].forEach.call(elems, function(el) {
+                    el.className = el.className.replace(/\bbg-blue-800\b/, "");
+                    el.className = el.className.replace(/\btext-white\b/, "text-gray-800");
+                    el.className = el.className.replace(/\bhover:bg-blue-600\b/, "");
+                });
+                elm.target.attributes.class.nodeValue="date-element bg-blue-800 text-white p-1.5 hover:bg-blue-600 cursor-pointer";
+                this.startDate = elm.target.attributes.date.nodeValue;
+            }
+            else {
+                this.endDate = elm.target.attributes.date.nodeValue;
+                elm.target.attributes.class.nodeValue="date-element bg-blue-800 text-white p-1.5 hover:bg-blue-600 cursor-pointer";
+
+                let DatesBetween = [];
+                if(new Date(this.startDate) < new Date(elm.target.attributes.date.nodeValue)) {
+                    DatesBetween = this.getDaysArray(new Date(this.startDate) , new Date(elm.target.attributes.date.nodeValue));
+                }
+                else {
+                    DatesBetween = this.getDaysArray(new Date(elm.target.attributes.date.nodeValue) , new Date(this.startDate));
+                }
+                [].forEach.call(DatesBetween, function(el) {
+                    var dateSelected = document.querySelectorAll('[date*="'+el+'"]');
+                    if(dateSelected.length > 0)
+                        dateSelected[0].attributes.class.nodeValue = "date-element bg-blue-800 text-white p-1.5 hover:bg-blue-600 cursor-pointer";
+                });
+            }
+            console.log("Start date: "+ this.startDate);
+            console.log("End date: "+ this.endDate);
+        },
+        getDaysArray: function(start, end) {
+            for(var arr=[],dt=new Date(start); dt<=end; dt.setDate(dt.getDate()+1)){
+                arr.push(new Date(dt).toLocaleDateString());
+            }
+            return arr;
+        },
+        daysInMonth: function(iMonth, iYear) { 
+            return 32 - new Date(iYear, iMonth, 32).getDate();
+        },
+        previousMonth: function() {
+            currentYear = (currentMonth === 0) ? currentYear - 1 : currentYear;
+            currentMonth = (currentMonth === 0) ? 11 : currentMonth - 1;
+            this.showCalendar(currentMonth, currentYear);
+        },
+        nexMonth:function() {
+            currentYear = (currentMonth === 11) ? currentYear + 1 : currentYear;
+            currentMonth = (currentMonth + 1) % 12;
+            this.showCalendar(currentMonth, currentYear);
+        },
+        showCalendar: function(month, year) {
+            let firstDay = (new Date(year, month)).getDay();
+            tbl = document.getElementById("calendar-body");
+            tbl.innerHTML = "";
+            this.SelectedMonthAndYear = this.months[month] + " " + year;
+            this.selectYear = year;
+            this.selectMonth = month;
+            let date = 1;
+            for (let i = 0; i < 6; i++) {
+                let row = document.createElement("tr");
+                row.classList.add("text-center", "text-gray-800", "text-sm", "select-none");
+                for (let j = 0; j < 7; j++) {
+                    if (i === 0 && j < firstDay) {
+                        cell = document.createElement("td");
+                        cellText = document.createTextNode("");
+                        cell.appendChild(cellText);
+                        row.appendChild(cell);
+                    }
+                    else if (date > this.daysInMonth(month, year)) {
+                        break;
+                    }
+                    else {
+                        cell = document.createElement("td");
+                        cellText = document.createTextNode(date);
+                        if (date === this.today.getDate() && year === this.today.getFullYear() && month === this.today.getMonth()) {
+                            cell.classList.add("date-element","bg-blue-800", "text-white", "hover:bg-blue-600");
+                        }
+                        cell.setAttribute("date", new Date(year, month, date).toLocaleDateString());
+                        cell.addEventListener("click", this.selectDate);
+                        cell.appendChild(cellText);
+                        row.appendChild(cell);
+                        date++;
+                    }
+                    cell.classList.add("p-1.5", "hover:bg-gray-300", "cursor-pointer");
+
+                }
+                tbl.appendChild(row);
+            }
+        }
+    },
+    mounted() {
+        currentMonth = this.today.getMonth();
+        currentYear = this.today.getFullYear();
+        this.startDate = this.today.toLocaleDateString();
+        if(this.dateRangeModel)
+            this.showCalendar(currentMonth, currentYear);
+    }
+});
+</script>
+</body>
+</html>
